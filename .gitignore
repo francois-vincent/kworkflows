@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+
+# build
+build/
+dist/
+*.egg-info
+*.egg
+
+# pycharm
+.idea/
+
+# private settings
+settings.py
+
+# Build, Distribution, Test and Coverage
+.eggs/
+.tox/
+.coverage
+build/
+htmlcov/
+
+# pipenv (use it but not its files)
+package-lock.json
+Pipfile
