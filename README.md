@@ -1,6 +1,6 @@
 # kworkflows
 
-A small module adding versatile state/transition workflows to Django applications
+A small module adding versatile state/transition workflows to Django applications.
 
 kworkflows is inspired from xworkflows and its buddy django-xworkflows, two modules offering a good state/transition workflow framework for general Python and Django applications.
 

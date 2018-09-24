@@ -1,1 +1,9 @@
-django
+django==1.10.8
+django-extended-choices
+WebTest==2.0.30
+django-webtest==1.9.3
+coverage
+django-discover-runner
+factory_boy
+mixer
+mock

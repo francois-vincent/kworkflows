@@ -10,9 +10,6 @@ dist/
 # pycharm
 .idea/
 
-# private settings
-settings.py
-
 # Build, Distribution, Test and Coverage
 .eggs/
 .tox/
@@ -20,6 +17,9 @@ settings.py
 build/
 htmlcov/
 
-# pipenv (use it but not its files)
+# pipenv (use it but do not track)
 package-lock.json
 Pipfile
+
+# sqlite
+db.sqlite3
