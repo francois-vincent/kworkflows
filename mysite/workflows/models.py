@@ -31,7 +31,7 @@ class OVHActivateWorkflow(ProviderOrderWorkflow):
         ('submit', 'start', 'state_1'),
         ('trans_1', 'state_1', 'state_2'),
         ('trans_2', 'state_2', 'state_1'),
-        ('finalize', 'state_2', 'end'),
+        ('finalize', ('state_1', 'state_2'), 'end'),
     )
 
 
@@ -76,6 +76,18 @@ class OVHActivateOrder(ProviderOrder):
     operator_name = 'OVH'
     type_value = constants.ORDER_TYPE.ACTIVATE
     workflow = OVHActivateWorkflow
+
+    def submit(self):
+        self.advance_state('submit')
+
+    def trans_1(self):
+        self.advance_state('trans_1')
+
+    def trans_2(self):
+        self.advance_state('trans_2')
+
+    def finalize(self):
+        self.advance_state('finalize')
 
     class Meta:
         proxy = True

@@ -75,8 +75,6 @@ class KWorkFlow(object):
 
 class KWorkFlowEnabled(object):
     workflow = None
-    pre_transitions = {}
-    post_transitions = {}
 
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)

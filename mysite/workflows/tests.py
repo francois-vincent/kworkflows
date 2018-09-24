@@ -22,7 +22,9 @@ class TestModels(TestCase):
         self.assertEqual(order.operator.name, 'OVH')
         self.assertEqual(order.type, constants.ORDER_TYPE.ACTIVATE)
         self.assertEqual(order.state, 'start')
-        self.assertEqual(order._meta.get_field('state').choices, models.ProviderOrderWorkflow.get_states())
+        self.assertDictEqual(dict(order._meta.get_field('state').choices),
+                             dict(start='Start', state_1='State 1', state_2='State 2',
+                                  state_a='State A', state_b='State B', end='End'))
 
     def test_order_advance_state(self):
         models.Operator.objects.create(name='OVH')
@@ -43,3 +45,19 @@ class TestModels(TestCase):
         order = models.OVHActivateOrder.objects.create()
         order.advance_state('submit')
         self.assertRaises(InvalidStateForTransition, order.advance_state, 'submit')
+
+
+class TestTransition(TestCase):
+
+    def test_transition(self):
+        models.Operator.objects.create(name='OVH')
+        order = models.OVHActivateOrder.objects.create()
+        order.submit()
+        self.assertEqual(order.state, 'state_1')
+        order.trans_1()
+        self.assertEqual(order.state, 'state_2')
+        order.trans_2()
+        self.assertEqual(order.state, 'state_1')
+        order.finalize()
+        self.assertEqual(order.state, 'end')
+
