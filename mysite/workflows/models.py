@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from django.db import models
 
 from . import constants
-from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, UIDField
+from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, UIDField, transition
 
 
 class Operator(models.Model):
@@ -65,6 +65,7 @@ class ProviderOrder(KWorkFlowEnabled, models.Model):
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     state = StateField(ProviderOrderWorkflow)
+    version = models.IntegerField(default=0)
 
     objects = ProviderObjectManager()
 
@@ -77,17 +78,21 @@ class OVHActivateOrder(ProviderOrder):
     type_value = constants.ORDER_TYPE.ACTIVATE
     workflow = OVHActivateWorkflow
 
-    def submit(self):
-        self.advance_state('submit')
+    @transition
+    def submit(self, advance_state):
+        advance_state()
 
-    def trans_1(self):
-        self.advance_state('trans_1')
+    @transition
+    def trans_1(self, advance_state):
+        advance_state()
 
-    def trans_2(self):
-        self.advance_state('trans_2')
+    @transition
+    def trans_2(self, advance_state):
+        advance_state()
 
-    def finalize(self):
-        self.advance_state('finalize')
+    @transition
+    def finalize(self, advance_state):
+        advance_state()
 
     class Meta:
         proxy = True
@@ -101,3 +106,18 @@ class SFRActivateOrder(ProviderOrder):
     class Meta:
         proxy = True
 
+    @transition
+    def submit(self, advance_state):
+        advance_state()
+
+    @transition
+    def trans_a(self, advance_state):
+        advance_state()
+
+    @transition
+    def trans_b(self, advance_state):
+        advance_state()
+
+    @transition
+    def finalize(self, advance_state):
+        advance_state()

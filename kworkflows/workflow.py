@@ -3,7 +3,7 @@ import functools
 from django.db import models
 
 from .constants import *
-from .utils import make_id_with_prefix
+from .utils import make_id_with_prefix, retry_twice
 
 
 class UIDField(models.Field):
@@ -78,4 +78,24 @@ class KWorkFlowEnabled(object):
 
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)
-        self.save()
+        return self.state
+
+    @retry_twice
+    def safe_advance_state(self, transition):
+        success = self.__class__.objects.filter(
+            uid=self.uid,
+            version=self.version
+        ).update(
+            state=self.workflow.advance_state(transition, self.state),
+            version=self.version + 1
+        ) > 0
+        if success:
+            self.refresh_from_db()
+        return success
+
+
+def transition(f):
+    def wrapped(self, *args, **kwargs):
+        self.workflow.find_transition(f.__name__)
+        return f(self, functools.partial(self.safe_advance_state, f.__name__), *args, **kwargs)
+    return wrapped
