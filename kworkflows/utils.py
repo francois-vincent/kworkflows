@@ -13,7 +13,7 @@ def make_id_with_prefix(prefix=None, length=8, with_uppercase=False):
     return prefix + '_' + rs if prefix is not None else rs
 
 
-def retry_twice(f):
+def retry_once(f):
     def wrapped(*args, **kwargs):
         if not f(*args, **kwargs):
             f(*args, **kwargs)

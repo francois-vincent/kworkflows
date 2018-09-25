@@ -3,7 +3,7 @@ import functools
 from django.db import models
 
 from .constants import *
-from .utils import make_id_with_prefix, retry_twice
+from .utils import make_id_with_prefix, retry_once
 
 
 class UIDField(models.Field):
@@ -75,13 +75,15 @@ class KWorkFlow(object):
 
 class KWorkFlowEnabled(object):
     workflow = None
+    histo = None
 
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)
         return self.state
 
-    @retry_twice
+    @retry_once
     def safe_advance_state(self, transition):
+        old_state = self.state
         success = self.__class__.objects.filter(
             uid=self.uid,
             version=self.version
@@ -91,6 +93,8 @@ class KWorkFlowEnabled(object):
         ) > 0
         if success:
             self.refresh_from_db()
+            if self.histo:
+                self.histo.objects.create(from_state=old_state, to_state=self.state, underlying=self)
         return success
 
 
@@ -99,3 +103,14 @@ def transition(f):
         self.workflow.find_transition(f.__name__)
         return f(self, functools.partial(self.safe_advance_state, f.__name__), *args, **kwargs)
     return wrapped
+
+
+class WorkFlowHistory(models.Model):
+    timestamp = models.DateTimeField(auto_now=True)
+    from_state = models.CharField(max_length=20)
+    to_state = models.CharField(max_length=20)
+
+    class Meta:
+        abstract = True
+        ordering = ['timestamp']
+        get_latest_by = 'timestamp'

@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from django.db import models
 
 from . import constants
-from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, UIDField, transition
+from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, UIDField, transition, WorkFlowHistory
 
 
 class Operator(models.Model):
@@ -50,6 +50,10 @@ class SFRActivateWorkflow(ProviderOrderWorkflow):
     )
 
 
+class ProviderOrderHistory(WorkFlowHistory):
+    underlying = models.ForeignKey('ProviderOrder', related_name='histories')
+
+
 class ProviderObjectManager(models.Manager):
 
     def create(self, **kwargs):
@@ -64,10 +68,12 @@ class ProviderOrder(KWorkFlowEnabled, models.Model):
     type = models.CharField(max_length=16, choices=constants.ORDER_TYPE, default=constants.ORDER_TYPE.ACTIVATE)
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
     state = StateField(ProviderOrderWorkflow)
     version = models.IntegerField(default=0)
 
     objects = ProviderObjectManager()
+    histo = ProviderOrderHistory
 
     def __str__(self):
         return "{} on {}, state={}".format(self.uid, self.operator.name, self.state)
