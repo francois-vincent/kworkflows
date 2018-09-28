@@ -69,8 +69,8 @@ class ProviderOrder(KWorkFlowEnabled, models.Model):
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    state = StateField(ProviderOrderWorkflow)
-    version = models.IntegerField(default=0)
+    state = StateField(ProviderOrderWorkflow, choices=True)
+    version = models.IntegerField(default=0)  # this is used for optimistic concurrency management
 
     objects = ProviderObjectManager()
     histo = ProviderOrderHistory

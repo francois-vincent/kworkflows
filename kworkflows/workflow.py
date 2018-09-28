@@ -27,7 +27,8 @@ class StateField(models.Field):
             l = max(len(s[0]) for s in states)
             max_length = kwargs.get('max_length', 20)
             kwargs['max_length'] = max(max_length, l)
-            kwargs['choices'] = states
+            if kwargs.pop('choices', False):
+                kwargs['choices'] = states
             kwargs['default'] = workflow.get_first_state()
         super().__init__(*args, **kwargs)
 
