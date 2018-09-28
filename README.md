@@ -59,7 +59,7 @@ class SFRActivateWorkflow(ProviderOrderWorkflow):
     )
 ```
 
-Then, add this mixin and these fields to the underlying model:
+Then, add this (quasi) mixin and your state field to the underlying model:
 
 ```
 from kworkflows import KWorkFlowEnabled, StateField
@@ -67,7 +67,6 @@ from kworkflows import KWorkFlowEnabled, StateField
 class ProviderOrder(KWorkFlowEnabled, models.Model):
     ...
     state = StateField(ProviderOrderWorkflow)
-    version = models.IntegerField(default=0)
 ```
 
 Then write each workflow derived subclass of the underlying model as a proxy,

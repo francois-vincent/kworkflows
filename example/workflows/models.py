@@ -63,14 +63,13 @@ class ProviderObjectManager(models.Manager):
         return super().create(**kwargs)
 
 
-class ProviderOrder(KWorkFlowEnabled, models.Model):
+class ProviderOrder(KWorkFlowEnabled):
     uid = UIDField()
     type = models.CharField(max_length=16, choices=constants.ORDER_TYPE, default=constants.ORDER_TYPE.ACTIVATE)
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     state = StateField(ProviderOrderWorkflow, choices=True)
-    version = models.IntegerField(default=0)  # this is used for optimistic concurrency management
 
     objects = ProviderObjectManager()
     histo = ProviderOrderHistory

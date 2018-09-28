@@ -74,9 +74,13 @@ class KWorkFlow(object):
         raise InvalidStateForTransition(cls.__name__, transition, state)
 
 
-class KWorkFlowEnabled(object):
+class KWorkFlowEnabled(models.Model):
     workflow = None
     histo = None
+    state_version = models.IntegerField(default=0)  # this is used for optimistic concurrency management
+
+    class Meta:
+        abstract = True
 
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)
@@ -84,13 +88,18 @@ class KWorkFlowEnabled(object):
 
     @retry_once
     def safe_advance_state(self, transition):
+        """ safe means using optimistic concurrency management
+        see https://medium.com/@hakibenita/how-to-manage-concurrency-in-django-models-b240fed4ee2
+        :param transition: the name of the transition to perform
+        :return: true if transition successfull
+        """
         old_state = self.state
         success = self.__class__.objects.filter(
             uid=self.uid,
-            version=self.version
+            state_version=self.state_version
         ).update(
             state=self.workflow.advance_state(transition, self.state),
-            version=self.version + 1
+            state_version=self.state_version + 1
         ) > 0
         if success:
             self.refresh_from_db()
