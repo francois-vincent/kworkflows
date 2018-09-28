@@ -14,6 +14,8 @@ def make_id_with_prefix(prefix=None, length=8, with_uppercase=False):
 
 
 def retry_once(f):
+    """ retry a callable once if return value evaluates to False
+    """
     def wrapped(*args, **kwargs):
         if not f(*args, **kwargs):
             f(*args, **kwargs)

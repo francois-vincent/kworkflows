@@ -37,7 +37,7 @@ class StateField(models.Field):
 
 
 class KWorkFlow(object):
-    """ Root workflow class with a factory
+    """ Base workflow class with a factory
     """
 
     @classmethod

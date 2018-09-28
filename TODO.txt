@@ -1,0 +1,7 @@
+offer choices merging as an option
+
+change django site name to example
+
+add logging
+
+add some docstrings and comments
