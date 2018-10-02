@@ -10,6 +10,7 @@ try:
 except NameError:
   basestring = str
 
+
 def isstring(x):
     return isinstance(x, basestring)
 
@@ -30,7 +31,7 @@ class StateField(models.Field):
         choices: if True, will collect the states from all the subclasses of the mother class
                  in the CharField's choices
         This class works in conjunction with class KWorkFlow
-        CharField's default will be set as the first state of all the subclasses (if it is the same,
+        CharField's 'default' will be set as the first state of all the subclasses (if it is the same,
           otherwise an exception is raised)
     """
     def __init__(self, *args, **kwargs):

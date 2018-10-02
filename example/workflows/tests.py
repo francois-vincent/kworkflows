@@ -1,4 +1,6 @@
+from datetime import timedelta
 from django.test import TestCase
+from django.utils import timezone
 from mixer.backend.django import mixer
 
 from kworkflows.constants import *
@@ -9,11 +11,15 @@ from . import constants, models
 class TestModels(TestCase):
 
     def test_order_generic(self):
+        t = timezone.now()
         order = mixer.blend('workflows.providerorder')
         self.assertTrue(order)
         self.assertEqual(order.type, constants.ORDER_TYPE.ACTIVATE)
         self.assertEqual(order.state, 'start')
         self.assertEqual(order._meta.get_field('state').choices, models.ProviderOrderWorkflow.get_states())
+        d = timedelta(microseconds=10000)  # 10 ms
+        self.assertTrue(t-d < order.created_at < t+d)
+        self.assertTrue(t-d < order.modified_at < t+d)
 
     def test_order_specific(self):
         models.Operator.objects.create(name='OVH')
@@ -40,11 +46,13 @@ class TestModels(TestCase):
         models.Operator.objects.create(name='OVH')
         order = models.OVHModifyOrder.objects.create()
         self.assertEqual(order.state, 'start')
+        t = order.modified_at
         order.safe_advance_state('submit')
         self.assertEqual(order.state, 'state_1')
         # state is saved to db
         order.refresh_from_db()
         self.assertEqual(order.state, 'state_1')
+        self.assertGreater(order.modified_at, t)
 
     def test_order_invalid_transition(self):
         models.Operator.objects.create(name='OVH')

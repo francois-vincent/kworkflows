@@ -1,3 +1,5 @@
+optinally raise if advance_state fails
+
 add some docstrings and comments
 
 add logging
@@ -9,3 +11,6 @@ add goto_state
 allow multiple state fields per model
 
 check transitions states against states (only once in find_transition)
+
+set auto_now in postgres if applicable
+set choices in postgres if applicable
