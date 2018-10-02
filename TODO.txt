@@ -1,9 +1,11 @@
 add some docstrings and comments
 
-make ProviderObjectManager generic (make create method generic)
-
 add logging
 
 add parameters to transitions
 
+add goto_state
+
 allow multiple state fields per model
+
+check transitions states against states (only once in find_transition)

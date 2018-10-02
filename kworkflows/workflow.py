@@ -1,8 +1,17 @@
 import functools
 
 from django.db import models
+from django.utils import timezone
 
 from .constants import *
+
+try:
+  basestring
+except NameError:
+  basestring = str
+
+def isstring(x):
+    return isinstance(x, basestring)
 
 
 def retry_once(f):
@@ -15,7 +24,7 @@ def retry_once(f):
 
 
 class StateField(models.Field):
-    """ StateField that renders as a CharField, with 'max_length', 'default' and optionzl 'choices'
+    """ StateField that renders as a CharField, with 'max_length', 'default' and optional 'choices'
         Params:
         max_length: will be overriden by the longest state length if necessary, defaults to 16
         choices: if True, will collect the states from all the subclasses of the mother class
@@ -54,6 +63,8 @@ class KWorkFlow(object):
 
     @classmethod
     def get_states(cls):
+        """ return the tuple of common states found in subclasses
+        """
         states = {}
         for sc in cls.__subclasses__():
             states.update(dict(sc.states))
@@ -61,6 +72,9 @@ class KWorkFlow(object):
 
     @classmethod
     def get_first_state(cls):
+        """ return common first state of all subclasses
+            raise if ambiguous
+        """
         first_states = {sc.states[0][0] for sc in cls.__subclasses__()}
         if len(first_states) > 1:
             raise MultipleDifferentFirstStates(cls.__name__)
@@ -68,16 +82,20 @@ class KWorkFlow(object):
 
     @classmethod
     def find_transition(cls, transition):
-        for t in cls.transitions:
-            if transition == t[0]:
-                return t
-        raise InvalidTransitionName(cls.__name__, transition)
+        if not hasattr(cls, '_transitions'):
+            cls._transitions = {}
+            for tr, fr, to in cls.transitions:
+                cls._transitions[tr] = ((fr,), to) if isstring(fr) else (fr, to)
+        try:
+            return cls._transitions[transition]
+        except KeyError:
+            raise InvalidTransitionName(cls.__name__, transition)
 
     @classmethod
     def advance_state(cls, transition, state):
         t = cls.find_transition(transition)
-        if state == t[1] or state in t[1]:
-            return t[2]
+        if state in t[0]:
+            return t[1]
         raise InvalidStateForTransition(cls.__name__, transition, state)
 
 
@@ -101,18 +119,27 @@ class KWorkFlowEnabled(models.Model):
         :return: true if transition successfull
         """
         old_state = self.state
-        success = self.__class__.objects.filter(
+        if self.__class__.objects.filter(
             uid=self.uid,
             state_version=self.state_version
         ).update(
+            modified_at=timezone.now(),
             state=self.workflow.advance_state(transition, self.state),
             state_version=self.state_version + 1
-        ) > 0
-        if success:
+        ):
             self.refresh_from_db()
             if self.histo:
                 self.histo.objects.create(from_state=old_state, to_state=self.state, underlying=self)
-        return success
+            return True
+
+
+class WorkflowProxyManager(models.Manager):
+
+    def create(self, **kwargs):
+        if getattr(self.model._meta, 'proxy', None):
+            for k, v in self.model.specific_fields.items():
+                kwargs[k] = v() if callable(v) else v
+        return super().create(**kwargs)
 
 
 def transition(f):

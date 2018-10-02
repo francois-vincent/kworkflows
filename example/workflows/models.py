@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import functools
 
 
 from django.db import models
 
 from . import constants, utils
-from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, transition, WorkFlowHistory
+from kworkflows.workflow import (KWorkFlow, KWorkFlowEnabled, StateField, transition,
+                                 WorkFlowHistory, WorkflowProxyManager)
 
 
 class Operator(models.Model):
@@ -22,7 +24,7 @@ ProviderOrderWorkflow = KWorkFlow.factory('ProviderOrderWorkflow')
 
 
 # Define workflow specific classes
-class OVHActivateWorkflow(ProviderOrderWorkflow):
+class OVHModifyWorkflow(ProviderOrderWorkflow):
     states = (
         ('start', 'Start'),
         ('state_1', 'State 1'),
@@ -37,7 +39,7 @@ class OVHActivateWorkflow(ProviderOrderWorkflow):
     )
 
 
-class SFRActivateWorkflow(ProviderOrderWorkflow):
+class SFRModifyWorkflow(ProviderOrderWorkflow):
     states = (
         ('start', 'Start'),
         ('state_a', 'State A'),
@@ -57,16 +59,6 @@ class ProviderOrderHistory(WorkFlowHistory):
     underlying = models.ForeignKey('ProviderOrder', related_name='histories')
 
 
-# Define Manager with specific create method
-class ProviderObjectManager(models.Manager):
-
-    def create(self, **kwargs):
-        if getattr(self.model._meta, 'proxy', None):
-            kwargs['operator'] = Operator.objects.get(name=self.model.operator_name)
-            kwargs['type'] = self.model.type_value
-        return super().create(**kwargs)
-
-
 # Define model with a 'state' field initialised with workflow mother class
 class ProviderOrder(KWorkFlowEnabled):
     uid = utils.UIDField()
@@ -76,7 +68,7 @@ class ProviderOrder(KWorkFlowEnabled):
     modified_at = models.DateTimeField(auto_now=True)
     state = StateField(ProviderOrderWorkflow, choices=True)  # specify workflow mother class here
 
-    objects = ProviderObjectManager()
+    objects = WorkflowProxyManager()
     histo = ProviderOrderHistory
 
     def __str__(self):
@@ -84,10 +76,12 @@ class ProviderOrder(KWorkFlowEnabled):
 
 
 # Define proxy classes with specific worflows
-class OVHActivateOrder(ProviderOrder):
-    operator_name = 'OVH'
-    type_value = constants.ORDER_TYPE.ACTIVATE
-    workflow = OVHActivateWorkflow   # specify workflow specific class here
+class OVHModifyOrder(ProviderOrder):
+    specific_fields = {
+        'operator': functools.partial(Operator.objects.get, name='OVH'),
+        'type': constants.ORDER_TYPE.MODIFY
+    }
+    workflow = OVHModifyWorkflow   # specify workflow specific class here
 
     class Meta:
         proxy = True
@@ -109,10 +103,12 @@ class OVHActivateOrder(ProviderOrder):
         advance_state()
 
 
-class SFRActivateOrder(ProviderOrder):
-    operator_name = 'SFR'
-    type_value = constants.ORDER_TYPE.ACTIVATE
-    workflow = SFRActivateWorkflow   # specify workflow specific class here
+class SFRModifyOrder(ProviderOrder):
+    specific_fields = {
+        'operator': functools.partial(Operator.objects.get, name='SFR'),
+        'type': constants.ORDER_TYPE.MODIFY
+    }
+    workflow = SFRModifyWorkflow   # specify workflow specific class here
 
     class Meta:
         proxy = True

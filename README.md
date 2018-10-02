@@ -30,7 +30,7 @@ ProviderOrderWorkflow = KWorkFlow.factory('ProviderOrderWorkflow')
 
 Then describe your workflows states and transitions as subclasses of this mother class:
 ```
-class OVHActivateWorkflow(ProviderOrderWorkflow):
+class OVHModifyWorkflow(ProviderOrderWorkflow):
     states = (
         ('start', 'Start'),
         ('state_1', 'State 1'),
@@ -45,7 +45,7 @@ class OVHActivateWorkflow(ProviderOrderWorkflow):
     )
 
 
-class SFRActivateWorkflow(ProviderOrderWorkflow):
+class SFRModifyWorkflow(ProviderOrderWorkflow):
     states = (
         ('start', 'Start'),
         ('state_a', 'State A'),
@@ -75,10 +75,12 @@ with transitions written this way at least:
 ```
 from kworkflows import transition
 
-class OVHActivateOrder(ProviderOrder):
-    operator_name = 'OVH'
-    type_value = constants.ORDER_TYPE.ACTIVATE
-    workflow = OVHActivateWorkflow
+class OVHModifyOrder(ProviderOrder):
+    specific_fields = {
+        'operator': functools.partial(Operator.objects.get, name='OVH'),
+        'type': constants.ORDER_TYPE.MODIFY
+    }
+    workflow = OVHModifyWorkflow
 
     @transition
     def submit(self, advance_state):
@@ -103,22 +105,14 @@ You can enrich transitions code as you wish, you only need to call
 the `advance_state` method at one point when you want the state transition
 and its optional history record to be performed.
 
-Then add a manager to the underlying class with at least a `create` method:
+Then add the `WorkflowProxyManager` manager to the underlying model:
 ```
-class ProviderObjectManager(models.Manager):
-
-    def create(self, **kwargs):
-        if getattr(self.model._meta, 'proxy', None):
-            kwargs['operator'] = Operator.objects.get(name=self.model.operator_name)
-            kwargs['type'] = self.model.type_value
-        return super().create(**kwargs)
-
 class ProviderOrder(KWorkFlowEnabled, models.Model):
     ...
-    objects = ProviderObjectManager()
+    objects = WorkflowProxyManager()
 ```
-The `create` method's reponsibility  is to auto fill fields that need to be, according to the static values specified in the
-worflow subclasses.
+This manager has a `create` method which reponsibility is to auto fill fields that need to be,
+according to the `specific_fields` in the worflow subclasses.
 
 Then optionally add an history class:
 ```
