@@ -11,11 +11,12 @@ Our goal in this work is to offer some flexibility, especially regarding flow in
 
 The main use case is to have a family of workflows attached to a single model but depending on the value of one or more fields.
 i.e. when an object is instanciated, it is attached one of the available workflows according to the values of the relevant fields.
+There is a single constraint to respect: all the sub worflows must have the same first state.
 
 In the short example below, we show all the steps that make a working polymorphic workflow:
- - Create the workflows from a mother class
- - Add relevant fields to the underlying model
- - Create as many proxies as the number of workflows, add relevant attributes and transition methods
+ - Create the workflows from a mother class (constraint: same first state)
+ - Add a `state` field to the underlying model
+ - Create as many proxies as there are workflows, add relevant attributes and transition methods
  - Add a manager to the underlying model with at least a `create` method for creating derived objects
  - Optionally add an history class to the underlying model
 

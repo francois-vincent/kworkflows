@@ -8,7 +8,7 @@ from .utils import make_id_with_prefix, retry_once
 
 class UIDField(models.Field):
     """ A auto fill UIDField that renders as a simple CharField,
-        with >4e18 combinations
+        with 36**12 >4e18 combinations
     """
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('max_length', 12)
@@ -22,6 +22,15 @@ class UIDField(models.Field):
 
 
 class StateField(models.Field):
+    """ StateField that renders as a CharField, with 'max_length', 'default' and optionzl 'choices'
+        Params:
+        max_length: will be overriden by the longest state length if necessary, defaults to 16
+        choices: if True, will collect the states from all the subclasses of the mother class
+                 in the CharField's choices
+        This class works in conjunction with class KWorkFlow
+        CharField's default will be set as the first state of all the subclasses (if it is the same,
+          otherwise an exception is raised)
+    """
     def __init__(self, *args, **kwargs):
         if args:
             workflow = args[0]
@@ -42,6 +51,8 @@ class StateField(models.Field):
 
 class KWorkFlow(object):
     """ Base workflow class with a factory
+        Usage: define your set of polymorphic workflows from a common mother class that you create this way:
+        MyWorkflowFamilly = KWorkFlow.factory('MyWorkflowFamilly')
     """
 
     @classmethod

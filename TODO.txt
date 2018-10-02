@@ -1,8 +1,9 @@
-make ProviderObjectManager generic
+add some docstrings and comments
+
+make ProviderObjectManager generic (make create method generic)
 
 add logging
 
-add some docstrings and comments
-
 add parameters to transitions
 
+allow multiple state fields per model

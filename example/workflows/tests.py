@@ -84,7 +84,7 @@ class TestTransition(TestCase):
         self.assertRaises(InvalidStateForTransition, order.finalize)
 
     def test_transitions_together(self):
-        # ensure that 2 proxy models can live together
+        # ensure that 2 proxy models can live together independently
         models.Operator.objects.create(name='OVH')
         models.Operator.objects.create(name='SFR')
         order_ovh = models.OVHActivateOrder.objects.create()
