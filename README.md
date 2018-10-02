@@ -59,7 +59,7 @@ class SFRActivateWorkflow(ProviderOrderWorkflow):
     )
 ```
 
-Then, add this (quasi) mixin and your state field to the underlying model:
+Then, add this (quasi) mixin and your `state` field to the underlying model:
 
 ```
 from kworkflows import KWorkFlowEnabled, StateField
@@ -100,7 +100,7 @@ class OVHActivateOrder(ProviderOrder):
 ```
 You can enrich transitions code as you wish, you only need to call
 the `advance_state` method at one point when you want the state transition
-and its optional historicisation to be performed.
+and its optional history record to be performed.
 
 Then add a manager to the underlying class with at least a `create` method:
 ```
@@ -116,6 +116,8 @@ class ProviderOrder(KWorkFlowEnabled, models.Model):
     ...
     objects = ProviderObjectManager()
 ```
+The `create` method's reponsibility  is to auto fill fields that need to be, according to the static values specified in the
+worflow subclasses.
 
 Then optionally add an history class:
 ```

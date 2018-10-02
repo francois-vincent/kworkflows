@@ -17,9 +17,11 @@ class Operator(models.Model):
         return "{} ({})".format(self.uid, self.name)
 
 
+# Define workflow mother class
 ProviderOrderWorkflow = KWorkFlow.factory('ProviderOrderWorkflow')
 
 
+# Define workflow specific classes
 class OVHActivateWorkflow(ProviderOrderWorkflow):
     states = (
         ('start', 'Start'),
@@ -50,10 +52,12 @@ class SFRActivateWorkflow(ProviderOrderWorkflow):
     )
 
 
+# Define history class (optional)
 class ProviderOrderHistory(WorkFlowHistory):
     underlying = models.ForeignKey('ProviderOrder', related_name='histories')
 
 
+# Define Manager with specific create method
 class ProviderObjectManager(models.Manager):
 
     def create(self, **kwargs):
@@ -63,13 +67,14 @@ class ProviderObjectManager(models.Manager):
         return super().create(**kwargs)
 
 
+# Define model with a 'state' field initialised with workflow mother class
 class ProviderOrder(KWorkFlowEnabled):
     uid = UIDField()
     type = models.CharField(max_length=16, choices=constants.ORDER_TYPE, default=constants.ORDER_TYPE.ACTIVATE)
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    state = StateField(ProviderOrderWorkflow, choices=True)
+    state = StateField(ProviderOrderWorkflow, choices=True)  # specify workflow mother class here
 
     objects = ProviderObjectManager()
     histo = ProviderOrderHistory
@@ -78,10 +83,14 @@ class ProviderOrder(KWorkFlowEnabled):
         return "{} on {}, state={}".format(self.uid, self.operator.name, self.state)
 
 
+# Define proxy classes with specific worflows
 class OVHActivateOrder(ProviderOrder):
     operator_name = 'OVH'
     type_value = constants.ORDER_TYPE.ACTIVATE
-    workflow = OVHActivateWorkflow
+    workflow = OVHActivateWorkflow   # specify workflow specific class here
+
+    class Meta:
+        proxy = True
 
     @transition
     def submit(self, advance_state):
@@ -99,14 +108,11 @@ class OVHActivateOrder(ProviderOrder):
     def finalize(self, advance_state):
         advance_state()
 
-    class Meta:
-        proxy = True
-
 
 class SFRActivateOrder(ProviderOrder):
     operator_name = 'SFR'
     type_value = constants.ORDER_TYPE.ACTIVATE
-    workflow = SFRActivateWorkflow
+    workflow = SFRActivateWorkflow   # specify workflow specific class here
 
     class Meta:
         proxy = True

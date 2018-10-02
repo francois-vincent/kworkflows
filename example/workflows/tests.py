@@ -32,6 +32,7 @@ class TestModels(TestCase):
         self.assertEqual(order.state, 'start')
         order.advance_state('submit')
         self.assertEqual(order.state, 'state_1')
+        # state is not saved to db
         order.refresh_from_db()
         self.assertEqual(order.state, 'start')
 
@@ -41,6 +42,7 @@ class TestModels(TestCase):
         self.assertEqual(order.state, 'start')
         order.safe_advance_state('submit')
         self.assertEqual(order.state, 'state_1')
+        # state is saved to db
         order.refresh_from_db()
         self.assertEqual(order.state, 'state_1')
 
@@ -80,6 +82,17 @@ class TestTransition(TestCase):
         order.trans_b()
         self.assertEqual(order.state, 'state_a')
         self.assertRaises(InvalidStateForTransition, order.finalize)
+
+    def test_transitions_together(self):
+        # ensure that 2 proxy models can live together
+        models.Operator.objects.create(name='OVH')
+        models.Operator.objects.create(name='SFR')
+        order_ovh = models.OVHActivateOrder.objects.create()
+        order_ovh.submit()
+        self.assertEqual(order_ovh.state, 'state_1')
+        order_sfr = models.SFRActivateOrder.objects.create()
+        order_sfr.submit()
+        self.assertEqual(order_sfr.state, 'state_a')
 
     def test_transition_history(self):
         models.Operator.objects.create(name='OVH')

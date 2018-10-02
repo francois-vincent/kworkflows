@@ -7,8 +7,11 @@ from .utils import make_id_with_prefix, retry_once
 
 
 class UIDField(models.Field):
+    """ A auto fill UIDField that renders as a simple CharField,
+        with >4e18 combinations
+    """
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('max_length', 8)
+        kwargs.setdefault('max_length', 12)
         kwargs.setdefault('default', functools.partial(make_id_with_prefix, length=kwargs['max_length']))
         kwargs.setdefault('unique', True)
         super().__init__(*args, **kwargs)
@@ -25,7 +28,7 @@ class StateField(models.Field):
             args = args[1:]
             states = workflow.get_states()
             l = max(len(s[0]) for s in states)
-            max_length = kwargs.get('max_length', 20)
+            max_length = kwargs.get('max_length', 16)
             kwargs['max_length'] = max(max_length, l)
             if kwargs.pop('choices', False):
                 kwargs['choices'] = states

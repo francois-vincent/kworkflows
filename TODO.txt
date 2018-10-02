@@ -1,4 +1,8 @@
+make ProviderObjectManager generic
 
 add logging
 
 add some docstrings and comments
+
+add parameters to transitions
+
