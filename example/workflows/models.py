@@ -4,12 +4,12 @@ from __future__ import unicode_literals
 
 from django.db import models
 
-from . import constants
-from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, UIDField, transition, WorkFlowHistory
+from . import constants, utils
+from kworkflows.workflow import KWorkFlow, KWorkFlowEnabled, StateField, transition, WorkFlowHistory
 
 
 class Operator(models.Model):
-    uid = UIDField()
+    uid = utils.UIDField()
     name = models.CharField(max_length=20, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -69,7 +69,7 @@ class ProviderObjectManager(models.Manager):
 
 # Define model with a 'state' field initialised with workflow mother class
 class ProviderOrder(KWorkFlowEnabled):
-    uid = UIDField()
+    uid = utils.UIDField()
     type = models.CharField(max_length=16, choices=constants.ORDER_TYPE, default=constants.ORDER_TYPE.ACTIVATE)
     operator = models.ForeignKey(Operator, related_name='provider_orders')
     created_at = models.DateTimeField(auto_now_add=True)

@@ -3,22 +3,15 @@ import functools
 from django.db import models
 
 from .constants import *
-from .utils import make_id_with_prefix, retry_once
 
 
-class UIDField(models.Field):
-    """ A auto fill UIDField that renders as a simple CharField,
-        with 36**12 >4e18 combinations
+def retry_once(f):
+    """ retry a callable once if return value evaluates to False
     """
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('max_length', 12)
-        kwargs.setdefault('default', functools.partial(make_id_with_prefix, length=kwargs['max_length']))
-        kwargs.setdefault('unique', True)
-        super().__init__(*args, **kwargs)
-
-    def deconstruct(self):
-        name, path, args, kwargs = super().deconstruct()
-        return name, 'models.CharField', args, kwargs
+    def wrapped(*args, **kwargs):
+        if not f(*args, **kwargs):
+            f(*args, **kwargs)
+    return wrapped
 
 
 class StateField(models.Field):
@@ -56,8 +49,8 @@ class KWorkFlow(object):
     """
 
     @classmethod
-    def factory(cls, name=None):
-        return type(name or make_id_with_prefix(cls.__name__), (cls,), {'__module__': __name__})
+    def factory(cls, name):
+        return type(name, (cls,), {'__module__': __name__})
 
     @classmethod
     def get_states(cls):
