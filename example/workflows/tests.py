@@ -16,7 +16,7 @@ class TestModels(TestCase):
         self.assertTrue(order)
         self.assertEqual(order.type, constants.ORDER_TYPE.ACTIVATE)
         self.assertEqual(order.state, 'start')
-        self.assertEqual(order._meta.get_field('state').choices, models.ProviderOrderWorkflow.get_states())
+        self.assertEqual(order._meta.get_field('state').choices, models.ProviderOrderWorkflow.get_all_states())
         d = timedelta(microseconds=10000)  # 10 ms
         self.assertTrue(t-d < order.created_at < t+d)
         self.assertTrue(t-d < order.modified_at < t+d)

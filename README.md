@@ -7,6 +7,15 @@ kworkflows is inspired from xworkflows and its buddy django-xworkflows, two modu
 Our goal in this work is to offer some flexibility, especially regarding flow inheritance, i.e. the possibility to have "typed" workflows, i.e. dynamically attach a workflow to an object according to the value of one or more fields of the underlying object.
 
 
+Features:
+ - lightweight documented code (under 200 lines), simple architecture, easy to use, easy to evolve
+ - it's a module, not a Django app, so no specific migration needed
+ - automatic consistency checks of state vs transitions
+ - optimistic concurrency management (does not use a lock)
+ - accurate report of errors
+ - optional historisation of transitions
+
+
 ## Quickstart
 
 The main use case is to have a family of workflows attached to a single model but depending on the value of one or more fields.

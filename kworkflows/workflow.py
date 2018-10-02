@@ -38,7 +38,7 @@ class StateField(models.Field):
         if args:
             workflow = args[0]
             args = args[1:]
-            states = workflow.get_states()
+            states = workflow.get_all_states()
             l = max(len(s[0]) for s in states)
             max_length = kwargs.get('max_length', 16)
             kwargs['max_length'] = max(max_length, l)
@@ -63,8 +63,8 @@ class KWorkFlow(object):
         return type(name, (cls,), {'__module__': __name__})
 
     @classmethod
-    def get_states(cls):
-        """ return the tuple of common states found in subclasses
+    def get_all_states(cls):
+        """ return the tuple of aggregated states found in subclasses
         """
         states = {}
         for sc in cls.__subclasses__():
@@ -73,7 +73,7 @@ class KWorkFlow(object):
 
     @classmethod
     def get_first_state(cls):
-        """ return common first state of all subclasses
+        """ return common first state of all subclasses,
             raise if ambiguous
         """
         first_states = {sc.states[0][0] for sc in cls.__subclasses__()}
@@ -83,6 +83,9 @@ class KWorkFlow(object):
 
     @classmethod
     def find_transition(cls, transition):
+        """ find transition and return 'from' states and 'to' state,
+            raise if transition not found
+        """
         if not hasattr(cls, '_transitions'):
             cls._transitions = {}
             for tr, fr, to in cls.transitions:
@@ -94,6 +97,9 @@ class KWorkFlow(object):
 
     @classmethod
     def advance_state(cls, transition, state):
+        """ find and return resulting state from current state and transition name,
+            raise if wrong transition or wrong current state
+        """
         t = cls.find_transition(transition)
         if state in t[0]:
             return t[1]
@@ -145,7 +151,7 @@ class WorkflowProxyManager(models.Manager):
 
 def transition(f):
     def wrapped(self, *args, **kwargs):
-        self.workflow.find_transition(f.__name__)
+        self.workflow.find_transition(f.__name__)  # check transition name
         return f(self, functools.partial(self.safe_advance_state, f.__name__), *args, **kwargs)
     return wrapped
 
