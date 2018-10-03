@@ -7,7 +7,7 @@ from django.db import models
 
 from . import constants, utils
 from kworkflows.workflow import (KWorkFlow, KWorkFlowEnabled, StateField, transition,
-                                 WorkFlowHistory, WorkflowProxyManager)
+                                 WorkFlowHistory, WorkflowEnabledManager)
 
 
 class Operator(models.Model):
@@ -68,7 +68,7 @@ class ProviderOrder(KWorkFlowEnabled):
     modified_at = models.DateTimeField(auto_now=True)
     state = StateField(ProviderOrderWorkflow, choices=True)  # specify workflow mother class here
 
-    objects = WorkflowProxyManager()
+    objects = WorkflowEnabledManager()
     histo = ProviderOrderHistory
 
     def __str__(self):

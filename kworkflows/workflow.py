@@ -1,4 +1,5 @@
 import functools
+import logging
 
 from django.db import models
 from django.utils import timezone
@@ -15,36 +16,42 @@ def isstring(x):
     return isinstance(x, basestring)
 
 
+logger = logging.getLogger(__name__)
+
+
 def retry_once(f):
     """ retry a callable once if return value evaluates to False
     """
     def wrapped(*args, **kwargs):
         if not f(*args, **kwargs):
-            f(*args, **kwargs)
+            logger.warning("Retrying transition {}".format(f.__name__))
+            if not f(*args, **kwargs):
+                logger.error("Aborting transition {}".format(f.__name__))
     return wrapped
 
 
 class StateField(models.Field):
-    """ StateField that renders as a CharField, with 'max_length', 'default' and optional 'choices'
-        Params:
-        max_length: will be overriden by the longest state length if necessary, defaults to 16
-        choices: if True, will collect the states from all the subclasses of the mother class
-                 in the CharField's choices
-        This class works in conjunction with class KWorkFlow
-        CharField's 'default' will be set as the first state of all the subclasses (if it is the same,
-          otherwise an exception is raised)
+    """
+    StateField that renders as a CharField, with 'max_length', 'default' and optional 'choices'
+    Params:
+    max_length: will be overriden by the longest state length if necessary, defaults to 16
+    choices: if True, will collect the states from all the subclasses of the mother class
+             in the CharField's choices
+    This class works in conjunction with class KWorkFlow
+    CharField's 'default' will be set as the first state of all the subclasses (if it is the same,
+      otherwise an exception is raised)
     """
     def __init__(self, *args, **kwargs):
         if args:
             workflow = args[0]
             args = args[1:]
-            states = workflow.get_all_states()
+            states = workflow.get_aggregated_states()
             l = max(len(s[0]) for s in states)
-            max_length = kwargs.get('max_length', 16)
+            max_length = max(kwargs.get('max_length', 16), len(CREATION_STATE))
             kwargs['max_length'] = max(max_length, l)
             if kwargs.pop('choices', False):
                 kwargs['choices'] = states
-            kwargs['default'] = workflow.get_first_state()
+            kwargs['default'] = workflow.get_aggregated_first_state()
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
@@ -53,9 +60,10 @@ class StateField(models.Field):
 
 
 class KWorkFlow(object):
-    """ Base workflow class with a factory
-        Usage: define your set of polymorphic workflows from a common mother class that you create this way:
-        MyWorkflowFamilly = KWorkFlow.factory('MyWorkflowFamilly')
+    """
+    Base workflow class with a factory
+    Usage: define your set of polymorphic workflows from a common mother class that you create this way:
+    MyWorkflowFamilly = KWorkFlow.factory('MyWorkflowFamilly')
     """
 
     @classmethod
@@ -63,8 +71,9 @@ class KWorkFlow(object):
         return type(name, (cls,), {'__module__': __name__})
 
     @classmethod
-    def get_all_states(cls):
-        """ return the tuple of aggregated states found in subclasses
+    def get_aggregated_states(cls):
+        """ Called by mother class only
+            return the tuple of aggregated states found in subclasses
         """
         states = {}
         for sc in cls.__subclasses__():
@@ -72,14 +81,20 @@ class KWorkFlow(object):
         return tuple((k, v) for k, v in states.items())
 
     @classmethod
-    def get_first_state(cls):
-        """ return common first state of all subclasses,
-            raise if ambiguous
+    def get_aggregated_first_state(cls):
+        """ Called by mother class only
+            return common first state of all subclasses, raise if ambiguous
         """
-        first_states = {sc.states[0][0] for sc in cls.__subclasses__()}
+        first_states = {sc.first_state() for sc in cls.__subclasses__()}
         if len(first_states) > 1:
             raise MultipleDifferentFirstStates(cls.__name__)
         return first_states.pop()
+
+    @classmethod
+    def first_state(cls):
+        """ return first state of workflow (=initial state)
+        """
+        return cls.states[0][0]
 
     @classmethod
     def find_transition(cls, transition):
@@ -121,9 +136,9 @@ class KWorkFlowEnabled(models.Model):
     @retry_once
     def safe_advance_state(self, transition):
         """ safe means using optimistic concurrency management
-        see https://medium.com/@hakibenita/how-to-manage-concurrency-in-django-models-b240fed4ee2
-        :param transition: the name of the transition to perform
-        :return: true if transition successfull
+            see https://medium.com/@hakibenita/how-to-manage-concurrency-in-django-models-b240fed4ee2
+            :param transition: the name of the transition to perform
+            :return: true if transition successfull
         """
         old_state = self.state
         if self.__class__.objects.filter(
@@ -140,13 +155,20 @@ class KWorkFlowEnabled(models.Model):
             return True
 
 
-class WorkflowProxyManager(models.Manager):
+class WorkflowEnabledManager(models.Manager):
+    """
+    Manager for workflow enabled model
+    """
 
     def create(self, **kwargs):
         if getattr(self.model._meta, 'proxy', None):
             for k, v in self.model.specific_fields.items():
                 kwargs[k] = v() if callable(v) else v
-        return super().create(**kwargs)
+        new = super().create(**kwargs)
+        if self.model.histo:
+            self.model.histo.objects.create(from_state=CREATION_STATE,
+                                            to_state=self.model.workflow.first_state(), underlying=new)
+        return new
 
 
 def transition(f):

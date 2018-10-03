@@ -12,3 +12,6 @@ check transitions states against states (only once in find_transition)
 
 set auto_now in postgres if applicable
 set choices in postgres if applicable
+
+do automatic advance_state if transition is not declared in proxy
+

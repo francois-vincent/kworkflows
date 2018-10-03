@@ -1,4 +1,7 @@
 
+CREATION_STATE = '#created'
+
+
 class MultipleDifferentFirstStates(Exception):
     def __init__(self, cls_name):
         super().__init__("Subclasses of {} must all have same first state".format(cls_name))
