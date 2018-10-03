@@ -124,6 +124,7 @@ class KWorkFlow(object):
 class KWorkFlowEnabled(models.Model):
     workflow = None
     histo = None
+    histo_create = True  # if False, creation step will not be historised
     state_version = models.IntegerField(default=0)  # this is used for optimistic concurrency management
 
     class Meta:
@@ -165,7 +166,7 @@ class WorkflowEnabledManager(models.Manager):
             for k, v in self.model.specific_fields.items():
                 kwargs[k] = v() if callable(v) else v
         new = super().create(**kwargs)
-        if self.model.histo:
+        if self.model.histo and self.model.histo_create:
             self.model.histo.objects.create(from_state=CREATION_STATE,
                                             to_state=self.model.workflow.first_state(), underlying=new)
         return new

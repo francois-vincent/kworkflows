@@ -134,3 +134,5 @@ class ProviderOrder(KWorkFlowEnabled, models.Model):
     ...
     histo = ProviderOrderHistory
 ```
+If enabled, history will record each transition, including creation of the underlying model instance
+(you can override this with attribute `histo_create` = False.
