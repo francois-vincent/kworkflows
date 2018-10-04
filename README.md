@@ -8,12 +8,11 @@ Our goal in this work is to offer some flexibility, especially regarding flow in
 
 
 Features:
- - lightweight documented code (under 200 lines), simple architecture, easy to use, easy to evolve
+ - lightweight documented code (about 200 lines), simple architecture, easy to use, easy to evolve
  - it's a module, not a Django app, so no specific migration needed
- - automatic consistency checks of state vs transitions
  - optimistic concurrency management (does not use a lock)
+ - automatic consistency checks of states and transitions definitions
  - accurate report of errors
- - automatic sanity checks of states and transitions definitions
  - optional historisation of transitions
 
 

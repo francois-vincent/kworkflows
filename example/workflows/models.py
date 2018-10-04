@@ -55,6 +55,7 @@ class SFRModifyWorkflow(ProviderOrderWorkflow):
 
 
 # Define history class (optional)
+# with a single field = foreign key to underlying model
 class ProviderOrderHistory(WorkFlowHistory):
     underlying = models.ForeignKey('ProviderOrder', related_name='histories')
 

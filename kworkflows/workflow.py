@@ -1,4 +1,5 @@
 import functools
+import inspect
 import logging
 
 from django.db import models
@@ -70,6 +71,8 @@ class KWorkFlow(object):
     def factory(cls, name):
         return type(name, (cls,), {'__module__': __name__})
 
+    # -------------- class methods called by mother class only ----------------
+
     @classmethod
     def get_aggregated_states(cls):
         """ Called by mother class only
@@ -89,6 +92,8 @@ class KWorkFlow(object):
         if len(first_states) > 1:
             raise MultipleDifferentFirstStates(cls.__name__)
         return first_states.pop()
+
+    # -------------- class methods called by specific class only ----------------
 
     @classmethod
     def first_state(cls):
@@ -137,6 +142,11 @@ class KWorkFlowEnabled(models.Model):
     class Meta:
         abstract = True
 
+    def get_transitions_methods(self):
+        """
+        """
+        return [k for k, v in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(v, 'transition', None)]
+
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)
         return self.state
@@ -183,6 +193,8 @@ def transition(f):
     def wrapped(self, *args, **kwargs):
         self.workflow.find_transition(f.__name__)  # check transition name
         return f(self, functools.partial(self.safe_advance_state, f.__name__), *args, **kwargs)
+    wrapped.__name__ = f.__name__
+    wrapped.transition = True
     return wrapped
 
 
