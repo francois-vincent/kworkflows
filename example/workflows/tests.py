@@ -32,6 +32,7 @@ class TestModels(TestCase):
                              dict(start='Start', state_1='State 1', state_2='State 2',
                                   state_a='State A', state_b='State B', end='End'))
         self.assertEqual(set(order.get_transitions_methods()), {'submit', 'trans_1', 'trans_2', 'finalize'})
+        self.assertTrue(order.workflow.check_transitions(order.get_transitions_methods()))
 
     def test_order_advance_state(self):
         models.Operator.objects.create(name='OVH')

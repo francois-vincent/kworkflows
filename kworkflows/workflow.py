@@ -96,6 +96,29 @@ class KWorkFlow(object):
     # -------------- class methods called by specific class only ----------------
 
     @classmethod
+    def consistency_checks(cls):
+        if not hasattr(cls, '_transitions'):
+            # format data and do some sanity checks
+            cls._states = {s[0] for s in cls.states}
+            if len(cls.states) != len(cls._states):
+                raise InconsistentStateList(cls.__name__)
+            cls._transitions = {tr: ((fr,), to) if isstring(fr) else (fr, to) for tr, fr, to in cls.transitions}
+            cls._transitions_set = set(cls._transitions)
+            for tr, v in cls._transitions.items():
+                if v[1] not in cls._states:
+                    raise InconsistentStateInTransition(cls.__name__, tr, 'final')
+                if not set(v[0]).issubset(cls._states):
+                    raise InconsistentStateInTransition(cls.__name__, tr, 'start')
+
+    @classmethod
+    def check_transitions(cls, transitions, equiv=True):
+        """ check that transitions are included (equiv=False) or equal (equiv=True) to transitions in workflow
+        """
+        cls.consistency_checks()
+        transitions = set(transitions)
+        return transitions.issubset(cls._transitions_set) and (not equiv or cls._transitions_set.issubset(transitions))
+
+    @classmethod
     def first_state(cls):
         """ return first state of workflow (=initial state)
         """
@@ -106,17 +129,7 @@ class KWorkFlow(object):
         """ find transition and return 'from' states and 'to' state,
             raise if transition not found
         """
-        if not hasattr(cls, '_transitions'):
-            # format data and do some sanity checks
-            cls._states = {s[0] for s in cls.states}
-            if len(cls.states) != len(cls._states):
-                raise InconsistentStateList(cls.__name__)
-            cls._transitions = {tr: ((fr,), to) if isstring(fr) else (fr, to) for tr, fr, to in cls.transitions}
-            for tr, v in cls._transitions.items():
-                if v[1] not in cls._states:
-                    raise InconsistentStateInTransition(cls.__name__, tr, 'final')
-                if len(set(v[0]).intersection(cls._states)) != len(v[0]):
-                    raise InconsistentStateInTransition(cls.__name__, tr, 'start')
+        cls.consistency_checks()
         try:
             return cls._transitions[transition]
         except KeyError:
@@ -143,7 +156,7 @@ class KWorkFlowEnabled(models.Model):
         abstract = True
 
     def get_transitions_methods(self):
-        """
+        """ get the list of methods with decorator 'transition'
         """
         return [k for k, v in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(v, 'transition', None)]
 
