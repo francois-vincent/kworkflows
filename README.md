@@ -13,6 +13,7 @@ Features:
  - automatic consistency checks of state vs transitions
  - optimistic concurrency management (does not use a lock)
  - accurate report of errors
+ - automatic sanity checks of states and transitions definitions
  - optional historisation of transitions
 
 

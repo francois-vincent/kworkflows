@@ -68,14 +68,14 @@ class ProviderOrder(KWorkFlowEnabled):
     modified_at = models.DateTimeField(auto_now=True)
     state = StateField(ProviderOrderWorkflow, choices=True)  # specify workflow mother class here
 
-    objects = WorkflowEnabledManager()
+    objects = WorkflowEnabledManager()  # use this manager
     histo = ProviderOrderHistory
 
     def __str__(self):
         return "{} on {}, state={}".format(self.uid, self.operator.name, self.state)
 
 
-# Define proxy classes with specific worflows
+# Define proxy classes with specific workflows
 class OVHModifyOrder(ProviderOrder):
     specific_fields = {
         'operator': functools.partial(Operator.objects.get, name='OVH'),

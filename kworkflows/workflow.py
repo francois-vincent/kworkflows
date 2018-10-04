@@ -102,9 +102,16 @@ class KWorkFlow(object):
             raise if transition not found
         """
         if not hasattr(cls, '_transitions'):
-            cls._transitions = {}
-            for tr, fr, to in cls.transitions:
-                cls._transitions[tr] = ((fr,), to) if isstring(fr) else (fr, to)
+            # format data and do some sanity checks
+            cls._states = {s[0] for s in cls.states}
+            if len(cls.states) != len(cls._states):
+                raise InconsistentStateList(cls.__name__)
+            cls._transitions = {tr: ((fr,), to) if isstring(fr) else (fr, to) for tr, fr, to in cls.transitions}
+            for tr, v in cls._transitions.items():
+                if v[1] not in cls._states:
+                    raise InconsistentStateInTransition(cls.__name__, tr, 'final')
+                if len(set(v[0]).intersection(cls._states)) != len(v[0]):
+                    raise InconsistentStateInTransition(cls.__name__, tr, 'start')
         try:
             return cls._transitions[transition]
         except KeyError:
