@@ -32,3 +32,8 @@ class FailAdvanceState(Exception):
     def __init__(self, cls_name, transition, state):
         super().__init__("Transition {} failed to advance from state {} "
                          "in Workflow {} due to high concurrency".format(transition, state, cls_name))
+
+
+class InvalidTransitionMethod(Exception):
+    def __init__(self, cls_name):
+        super().__init__("Invalid transition method in Workflow {}".format(cls_name))

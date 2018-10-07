@@ -3,6 +3,7 @@ import inspect
 import logging
 
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils import timezone
 
 from .constants import *
@@ -18,6 +19,13 @@ def isstring(x):
 
 
 logger = logging.getLogger(__name__)
+
+
+class classproperty(object):
+    def __init__(self, f):
+        self.f = f
+    def __get__(self, obj, owner):
+        return self.f(owner)
 
 
 def retry_once(f):
@@ -52,7 +60,7 @@ class StateField(models.Field):
             kwargs['max_length'] = max(max_length, l)
             if kwargs.pop('choices', False):
                 kwargs['choices'] = states
-            kwargs['default'] = workflow.get_aggregated_first_state()
+            kwargs['default'] = workflow.get_initial_state()
         super().__init__(*args, **kwargs)
 
     def deconstruct(self):
@@ -84,11 +92,11 @@ class KWorkFlow(object):
         return tuple((k, v) for k, v in states.items())
 
     @classmethod
-    def get_aggregated_first_state(cls):
+    def get_initial_state(cls):
         """ Called by mother class only
-            return common first state of all subclasses, raise if ambiguous
+            return common initial state of all subclasses, raise if ambiguous
         """
-        first_states = {sc.first_state() for sc in cls.__subclasses__()}
+        first_states = {sc.initial_state for sc in cls.__subclasses__()}
         if len(first_states) > 1:
             raise MultipleDifferentFirstStates(cls.__name__)
         return first_states.pop()
@@ -96,9 +104,10 @@ class KWorkFlow(object):
     # -------------- class methods called by specific class only ----------------
 
     @classmethod
-    def consistency_checks(cls):
+    def consistency_checks(cls, transitions):
+        """ format states and transitions and do some consistency checks
+        """
         if not hasattr(cls, '_transitions'):
-            # format data and do some sanity checks
             cls._states = {s[0] for s in cls.states}
             if len(cls.states) != len(cls._states):
                 raise InconsistentStateList(cls.__name__)
@@ -109,18 +118,21 @@ class KWorkFlow(object):
                     raise InconsistentStateInTransition(cls.__name__, tr, 'final')
                 if not set(v[0]).issubset(cls._states):
                     raise InconsistentStateInTransition(cls.__name__, tr, 'start')
+        if not cls.check_transitions(transitions, equiv=False):
+            raise InvalidTransitionMethod(cls)
 
     @classmethod
     def check_transitions(cls, transitions, equiv=True):
-        """ check that transitions are included (equiv=False) or equal (equiv=True) to transitions in workflow
+        """ check that given transitions are included (equiv=False) or equal (equiv=True) to transitions in workflow
         """
-        cls.consistency_checks()
         transitions = set(transitions)
-        return transitions.issubset(cls._transitions_set) and (not equiv or cls._transitions_set.issubset(transitions))
+        return transitions == cls._transitions_set if equiv else transitions.issubset(cls._transitions_set)
 
-    @classmethod
-    def first_state(cls):
-        """ return first state of workflow (=initial state)
+    @classproperty
+    def initial_state(cls):
+        """ property that gets initial state of workflow (=first state).
+            can be overriden in a specific workflow subclass if you want
+            an initial state different than the first one
         """
         return cls.states[0][0]
 
@@ -129,7 +141,6 @@ class KWorkFlow(object):
         """ find transition and return 'from' states and 'to' state,
             raise if transition not found
         """
-        cls.consistency_checks()
         try:
             return cls._transitions[transition]
         except KeyError:
@@ -146,7 +157,15 @@ class KWorkFlow(object):
         raise InvalidStateForTransition(cls.__name__, transition, state)
 
 
-class KWorkFlowEnabled(models.Model):
+class WorkflowMeta(ModelBase):
+    def __init__(cls, *args):
+        super().__init__(*args)
+        wf = getattr(cls, 'workflow', None)
+        if wf:
+            wf.consistency_checks(cls.get_transitions_methods())
+
+
+class KWorkFlowEnabled(models.Model, metaclass=WorkflowMeta):
     workflow = None
     histo = None
     histo_create = True  # if False, creation step will not be historised
@@ -155,10 +174,11 @@ class KWorkFlowEnabled(models.Model):
     class Meta:
         abstract = True
 
-    def get_transitions_methods(self):
+    @classmethod
+    def get_transitions_methods(cls):
         """ get the list of methods with decorator 'transition'
         """
-        return [k for k, v in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(v, 'transition', None)]
+        return [k for k, v in inspect.getmembers(cls, predicate=inspect.isfunction) if getattr(v, 'transition', None)]
 
     def advance_state(self, transition):
         self.state = self.workflow.advance_state(transition, self.state)
@@ -198,7 +218,7 @@ class WorkflowEnabledManager(models.Manager):
         new = super().create(**kwargs)
         if self.model.histo and self.model.histo_create:
             self.model.histo.objects.create(from_state=CREATION_STATE,
-                                            to_state=self.model.workflow.first_state(), underlying=new)
+                                            to_state=self.model.workflow.initial_state, underlying=new)
         return new
 
 

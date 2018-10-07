@@ -1,18 +1,22 @@
-sanity checks:
-check transitions in workflow vs transitions in declard in underlying model
 
-optionally raise if advance_state fails
+optionally raise if advance_state fails on retry
 
-add some docstrings and comments
-
-add logging
+add field 'data' to WorkFlowHistory (a JSON string)
 
 add goto_state
 
+add states and transitions localized labels
+
+add available_transitions and available_states methods
+
 allow multiple state fields per model
 
+postgres:
 set auto_now in postgres if applicable
 set choices in postgres if applicable
 
 do automatic advance_state if transition is not declared in proxy ?
 
+add non nominal tests
+
+add dot graph generation of transition graph
