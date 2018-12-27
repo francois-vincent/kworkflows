@@ -11,7 +11,8 @@ Features:
  - lightweight documented code (about 200 lines), simple architecture, easy to use, easy to evolve
  - it's a module, not a Django app, so no specific migration needed
  - optimistic concurrency management (does not use a lock)
- - automatic consistency checks of states and transitions definitions
+ - automatic consistency checks of states and transitions definitions during class definition
+ - transitions can accept any parameters
  - accurate report of errors
  - optional historisation of transitions
 

@@ -3,7 +3,7 @@ optionally raise if advance_state fails on retry
 
 add field 'data' to WorkFlowHistory (a JSON string)
 
-add goto_state
+add goto_state or find_transition from target_state
 
 add states and transitions localized labels
 

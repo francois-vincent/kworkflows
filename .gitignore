@@ -1,21 +1,18 @@
 __pycache__/
 *.py[cod]
 
-# build
+# Build, Distribution, Test and Coverage
 build/
 dist/
 *.egg-info
 *.egg
-
-# pycharm
-.idea/
-
-# Build, Distribution, Test and Coverage
 .eggs/
 .tox/
 .coverage
-build/
 htmlcov/
+
+# pycharm
+.idea/
 
 # pipenv (use it but do not track)
 package-lock.json
